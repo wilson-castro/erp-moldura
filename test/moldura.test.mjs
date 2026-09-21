@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createElement as h } from 'react'
 import { renderToString } from 'react-dom/server'
 import {
-  Moldura, FormularioDeAcao, emitirToast, ouvirToasts, serializarFlash, lerFlash, limparFlash, validarToast, NOME_COOKIE_FLASH,
+  Moldura, FormularioDeAcao, executarAcao, destinoSeguro, FALHA_DE_ACAO, emitirToast, ouvirToasts, serializarFlash, lerFlash, validarToast,
 } from '../dist/index.js'
 
 const MENU = [
@@ -76,11 +76,25 @@ test('flash: ida e volta, e valor adulterado vira nada', () => {
   assert.equal(validarToast({ tipo: 'info', texto: '' }), null)
 })
 
-test('limparFlash apaga o cookie __Host- com Path=/ e Secure, que um __Host- exige', () => {
-  const doc = { cookie: '' }
-  limparFlash(doc)
-  assert.match(doc.cookie, new RegExp(`^${NOME_COOKIE_FLASH}=; Max-Age=0; Path=/; Secure`))
-  assert.doesNotThrow(() => limparFlash(undefined))
+test('executarAcao troca o documento para o destino interno devolvido', async () => {
+  const idas = []
+  await executarAcao(async () => ({ destino: '/zona1' }), new FormData(), (d) => idas.push(d), () => assert.fail('avisou'))
+  assert.deepEqual(idas, ['/zona1'])
+})
+
+test('executarAcao nunca navega para fora: //, /\\ ou URL absoluta viram /', async () => {
+  for (const destino of ['//evil.com', '/\\evil.com', 'https://evil.com', undefined, 42]) {
+    const idas = []
+    await executarAcao(async () => ({ destino }), new FormData(), (d) => idas.push(d), () => {})
+    assert.deepEqual(idas, ['/'], String(destino))
+  }
+  assert.equal(destinoSeguro('/acesso'), '/acesso')
+})
+
+test('executarAcao avisa num toast quando a action falha, e nao navega', async () => {
+  const avisos = []
+  await executarAcao(async () => { throw new Error('rede') }, new FormData(), () => assert.fail('navegou'), (t) => avisos.push(t))
+  assert.deepEqual(avisos, [FALHA_DE_ACAO])
 })
 
 test('o componente cliente carrega a diretiva use client no pacote publicado', async () => {

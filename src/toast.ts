@@ -37,9 +37,9 @@ export function ouvirToasts(fn: (t: Toast) => void, alvo: EventTarget = globalTh
 export type Flash = Toast & { readonly id: string }
 
 /**
- * Flash: toast que atravessa uma navegação entre zonas. A Server Action grava o cookie,
- * o documento seguinte (de qualquer zona) o lê no servidor e o host de toast o apaga
- * ao montar — por isso aparece uma vez só.
+ * Flash: toast que atravessa uma navegação entre zonas. A Server Action grava o cookie; o
+ * proxy do documento seguinte (de qualquer zona) o consome — entrega ao layout e apaga o
+ * cookie na mesma resposta — por isso aparece uma vez só, com ou sem JavaScript.
  */
 export const NOME_COOKIE_FLASH = '__Host-flash'
 
@@ -58,10 +58,4 @@ export function lerFlash(valor: string | undefined | null): Flash | null {
     const t = validarToast(bruto)
     return t && typeof bruto.id === 'string' && ID_FLASH.test(bruto.id) ? { ...t, id: bruto.id } : null
   } catch { return null }
-}
-
-/** `doc` injetável para teste. `Secure` e `Path=/` são exigidos para apagar um `__Host-`. */
-export function limparFlash(doc: { cookie: string } | undefined = globalThis.document): void {
-  if (!doc) return
-  try { doc.cookie = `${NOME_COOKIE_FLASH}=; Max-Age=0; Path=/; Secure; SameSite=Lax` } catch { /* ambiente restrito */ }
 }

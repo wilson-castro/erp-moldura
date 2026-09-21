@@ -1,6 +1,6 @@
 {
   "name": "@erp/moldura",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
@@ -10,7 +10,7 @@
   "sideEffects": ["*.css"],
   "scripts": {
     "build": "tsc -p tsconfig.json && cp src/estilo.css dist/estilo.css",
-    "test": "pnpm build && node --test test/*.test.mjs",
+    "test": "pnpm build && node --experimental-test-module-mocks --test test/*.test.mjs",
     "publicar": "pnpm build && pnpm publish --no-git-checks --registry http://localhost:4873"
   },
   "peerDependencies": { "react": "^19.0.0" },

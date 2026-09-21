@@ -1,47 +1,45 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { limparFlash, ouvirToasts, type Flash, type Toast } from './toast.js'
+import { ouvirToasts, type Flash, type Toast } from './toast.js'
 
 type ToastVisivel = Toast & { chave: string }
 export const DURACAO_MS = 5000
 let proximo = 1
 
 /**
- * Único host de toast do documento. Toda zona o monta pela `<Moldura>`.
+ * Único host de toast do documento. Toda aplicação o monta pela `<Moldura>`.
  *
- * O flash chega por prop a cada renderização do layout — inclusive depois de uma Server
- * Action que redireciona para a própria zona, quando o host continua montado. Por isso o
- * efeito depende do `id` do flash, e não roda só na montagem.
+ * O flash chega por prop, já consumido pelo proxy. Um flash novo (outro `id`) numa
+ * renderização seguinte do layout também aparece — o efeito depende do `id`.
  */
 export function HostDeToast({ flash }: { flash?: Flash | null }) {
   const [toasts, setToasts] = useState<ToastVisivel[]>(() => (flash ? [{ ...flash, chave: flash.id }] : []))
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>())
   const vistos = useRef(new Set<string>(flash ? [flash.id] : []))
 
-  const agendar = (chave: string) => {
-    const t = setTimeout(() => { timers.current.delete(t); setToasts((l) => l.filter((x) => x.chave !== chave)) }, DURACAO_MS)
-    timers.current.add(t)
+  const mostrar = (t: Toast, chave: string) => {
+    setToasts((l) => [...l, { ...t, chave }])
+    const timer = setTimeout(() => { timers.current.delete(timer); setToasts((l) => l.filter((x) => x.chave !== chave)) }, DURACAO_MS)
+    timers.current.add(timer)
   }
 
   useEffect(() => {
-    const parar = ouvirToasts((t) => {
-      const chave = `evento-${proximo++}`
-      setToasts((l) => [...l, { ...t, chave }])
-      agendar(chave)
-    })
+    const parar = ouvirToasts((t) => mostrar(t, `evento-${proximo++}`))
     const pendentes = timers.current
     return () => { parar(); for (const t of pendentes) clearTimeout(t) }
   }, [])
 
   useEffect(() => {
     if (!flash) return
-    limparFlash()
-    if (toasts.some((t) => t.chave === flash.id)) { agendar(flash.id); return }
-    if (vistos.current.has(flash.id)) return
+    if (vistos.current.has(flash.id)) {
+      // o do primeiro render já está na lista; só falta o prazo para sair
+      const timer = setTimeout(() => setToasts((l) => l.filter((x) => x.chave !== flash.id)), DURACAO_MS)
+      timers.current.add(timer)
+      return
+    }
     vistos.current.add(flash.id)
-    setToasts((l) => [...l, { ...flash, chave: flash.id }])
-    agendar(flash.id)
+    mostrar(flash, flash.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flash?.id])
 
