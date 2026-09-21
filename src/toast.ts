@@ -33,6 +33,9 @@ export function ouvirToasts(fn: (t: Toast) => void, alvo: EventTarget = globalTh
   return () => alvo.removeEventListener(EVENTO, ouvinte)
 }
 
+/** Flash carrega um id: dois flashes de mesmo texto seguidos são dois avisos, não um. */
+export type Flash = Toast & { readonly id: string }
+
 /**
  * Flash: toast que atravessa uma navegação entre zonas. A Server Action grava o cookie,
  * o documento seguinte (de qualquer zona) o lê no servidor e o host de toast o apaga
@@ -40,15 +43,21 @@ export function ouvirToasts(fn: (t: Toast) => void, alvo: EventTarget = globalTh
  */
 export const NOME_COOKIE_FLASH = '__Host-flash'
 
+const ID_FLASH = /^[A-Za-z0-9-]{1,64}$/
+
 export const serializarFlash = (t: Toast): string => {
   const v = validarToast(t)
   if (!v) throw new TypeError('toast invalido')
-  return encodeURIComponent(JSON.stringify(v))
+  return encodeURIComponent(JSON.stringify({ ...v, id: crypto.randomUUID() }))
 }
 
-export function lerFlash(valor: string | undefined | null): Toast | null {
+export function lerFlash(valor: string | undefined | null): Flash | null {
   if (!valor) return null
-  try { return validarToast(JSON.parse(decodeURIComponent(valor))) } catch { return null }
+  try {
+    const bruto = JSON.parse(decodeURIComponent(valor)) as { id?: unknown }
+    const t = validarToast(bruto)
+    return t && typeof bruto.id === 'string' && ID_FLASH.test(bruto.id) ? { ...t, id: bruto.id } : null
+  } catch { return null }
 }
 
 /** `doc` injetável para teste. `Secure` e `Path=/` são exigidos para apagar um `__Host-`. */

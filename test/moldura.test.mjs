@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { createElement as h } from 'react'
 import { renderToString } from 'react-dom/server'
 import {
-  Moldura, emitirToast, ouvirToasts, serializarFlash, lerFlash, limparFlash, validarToast, NOME_COOKIE_FLASH,
+  Moldura, FormularioDeAcao, emitirToast, ouvirToasts, serializarFlash, lerFlash, limparFlash, validarToast, NOME_COOKIE_FLASH,
 } from '../dist/index.js'
 
 const MENU = [
@@ -34,7 +34,7 @@ test('usuario aparece com o botao de sair, que e um POST ao shell', () => {
 })
 
 test('o flash chega renderizado no HTML do documento seguinte', () => {
-  const html = render({ flash: { tipo: 'sucesso', texto: 'Tarefa concluída' } })
+  const html = render({ flash: { tipo: 'sucesso', texto: 'Tarefa concluída', id: 'f-1' } })
   assert.match(html, /moldura-toast-sucesso">Tarefa concluída</)
   assert.match(html, /role="status"/)
 })
@@ -63,9 +63,13 @@ test('toast invalido nao e emitido nem aceito do barramento', () => {
 
 test('flash: ida e volta, e valor adulterado vira nada', () => {
   const t = { tipo: 'erro', texto: 'Não foi possível; tente de novo' }
-  assert.deepEqual(lerFlash(serializarFlash(t)), t)
+  const lido = lerFlash(serializarFlash(t))
+  assert.deepEqual({ tipo: lido.tipo, texto: lido.texto }, t)
+  assert.match(lido.id, /^[0-9a-f-]{36}$/)
+  assert.notEqual(lerFlash(serializarFlash(t)).id, lido.id, 'dois flashes iguais tem ids diferentes')
+  assert.equal(lerFlash(encodeURIComponent(JSON.stringify({ ...t, id: '../x' }))), null, 'id hostil')
   for (const v of [undefined, '', '%E0', 'nao-json', encodeURIComponent('{"tipo":"x","texto":"a"}'),
-                   encodeURIComponent(JSON.stringify({ tipo: 'info', texto: 'a', extra: '<script>' }))]) {
+                   encodeURIComponent(JSON.stringify({ tipo: 'info', texto: 'a', id: 'x', extra: '<script>' }))]) {
     const r = lerFlash(v)
     assert.ok(r === null || !('extra' in r), `aceitou ${v}`)
   }
@@ -81,8 +85,9 @@ test('limparFlash apaga o cookie __Host- com Path=/ e Secure, que um __Host- exi
 
 test('o componente cliente carrega a diretiva use client no pacote publicado', async () => {
   const { readFileSync } = await import('node:fs')
-  const js = readFileSync(new URL('../dist/HostDeToast.js', import.meta.url), 'utf8')
-  assert.match(js, /^['"]use client['"]/)
+  for (const f of ['HostDeToast.js', 'FormularioDeAcao.js']) {
+    assert.match(readFileSync(new URL(`../dist/${f}`, import.meta.url), 'utf8'), /^['"]use client['"]/, f)
+  }
   assert.ok(!/^['"]use client['"]/.test(readFileSync(new URL('../dist/Moldura.js', import.meta.url), 'utf8')),
     'a moldura e server-compativel; so o host de toast e ilha')
 })
@@ -94,4 +99,12 @@ test('moduloAtivo escolhe o prefixo mais longo, sem confundir /zona1 com /zona10
   assert.equal(moduloAtivo(menu, '/zona1/recursos/r-1'), 'zona1.painel')
   assert.equal(moduloAtivo(menu, '/zona10'), 'shell.inicio')
   assert.equal(moduloAtivo([], '/'), undefined)
+})
+
+test('FormularioDeAcao renderiza so campos de texto ocultos e o botao', () => {
+  const html = renderToString(h(FormularioDeAcao, { acao: async () => ({ destino: '/' }), campos: { id: 't-1', versao: '2' },
+                                                   children: h('button', { type: 'submit' }, 'Ir') }))
+  assert.match(html, /<input type="hidden" name="id" value="t-1"\/>/)
+  assert.match(html, /<input type="hidden" name="versao" value="2"\/>/)
+  assert.match(html, /<button type="submit">Ir<\/button>/)
 })

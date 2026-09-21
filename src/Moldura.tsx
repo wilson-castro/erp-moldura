@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { HostDeToast } from './HostDeToast.js'
-import type { Toast } from './toast.js'
+import type { Flash } from './toast.js'
 
 export type ItemDeMenu = { readonly id: string; readonly rotulo: string; readonly prefixo: string }
 
@@ -11,7 +11,7 @@ export type PropsDaMoldura = {
   ativo?: string
   /** Só o nome: a sessão da aplicação não tem mais que isso. */
   usuario?: { readonly nome: string } | null
-  flash?: Toast | null
+  flash?: Flash | null
   children: ReactNode
 }
 
