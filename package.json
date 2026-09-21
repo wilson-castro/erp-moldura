@@ -1,0 +1,24 @@
+{
+  "name": "@erp/moldura",
+  "version": "0.1.1",
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./estilo.css": "./dist/estilo.css"
+  },
+  "files": ["dist"],
+  "sideEffects": ["*.css"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp src/estilo.css dist/estilo.css",
+    "test": "pnpm build && node --test test/*.test.mjs",
+    "publicar": "pnpm build && pnpm publish --no-git-checks --registry http://localhost:4873"
+  },
+  "peerDependencies": { "react": "^19.0.0" },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/react": "^19.0.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "publishConfig": { "registry": "http://localhost:4873" }
+}
