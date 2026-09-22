@@ -8,12 +8,15 @@ import type { ResultadoDeAcao } from './FormularioDeAcao.js'
 
 type MotivoDeNegacao = 'origem' | 'sessao' | 'modulo'
 
+/** O que a action exige: uma funcionalidade de um módulo, ou papel administrativo (ADR-0014, adendo 1). */
+export type Requisito = { readonly modulo: string; readonly funcionalidade: string } | { readonly administra: true }
+
 /** A forma de `criarPaginas(...)` do núcleo que a moldura usa. */
 export type Paginas = {
   caminhoAtual(): Promise<string>
   sessaoDaPagina(): Promise<{ nome: string }>
   modulosPermitidos(): Promise<readonly ItemDeMenu[]>
-  acaoProtegida<R>(modulo: string, corpo: () => Promise<R>, aoNegar: (motivo: MotivoDeNegacao) => Promise<R>): Promise<R>
+  acaoProtegida<R>(requisito: Requisito, corpo: () => Promise<R>, aoNegar: (motivo: MotivoDeNegacao) => Promise<R>): Promise<R>
 }
 
 export type ConfigDaMolduraDoServidor = {
@@ -63,11 +66,11 @@ export function criarMolduraDoServidor(cfg: ConfigDaMolduraDoServidor) {
    * com JavaScript, o Next buscaria o destino no processo desta zona (limitação 11).
    */
   function acaoProtegida(
-    modulo: string,
+    requisito: Requisito,
     voltar: string,
     corpo: () => Promise<{ toast: Toast; destino: string }>,
   ): Promise<ResultadoDeAcao> {
-    return paginas.acaoProtegida<ResultadoDeAcao>(modulo,
+    return paginas.acaoProtegida<ResultadoDeAcao>(requisito,
       async () => {
         try {
           const { toast, destino } = await corpo()

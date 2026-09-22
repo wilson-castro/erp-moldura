@@ -12,13 +12,12 @@ import { ServicoIndisponivel, ErroGlobal, NOME_COOKIE_FLASH, lerFlash } from '..
 class ErroDeApp extends Error { constructor(codigo) { super(codigo); this.codigo = codigo } }
 
 /** `paginas` falso com a mesma forma de `criarPaginas` do núcleo (tipagem estrutural). */
-function paginas({ modulos = [{ id: 'zona1.painel', rotulo: 'Painel', prefixo: '/zona1' }], acessoFora = false, nega = null } = {}) {
+function paginas({ modulos = [{ id: 'zona1', rotulo: 'Painel', prefixo: '/zona1' }], acessoFora = false, nega = null, requisitos = [] } = {}) {
   return {
     caminhoAtual: async () => '/zona1',
     sessaoDaPagina: async () => ({ sub: 'ana', nome: 'Ana Operadora' }),
     modulosPermitidos: async () => { if (acessoFora) throw new ErroDeApp('ERRO_INTERNO'); return modulos },
-    exigirModulo: async () => {},
-    acaoProtegida: async (_m, corpo, aoNegar) => (nega ? aoNegar(nega) : corpo()),
+    acaoProtegida: async (requisito, corpo, aoNegar) => { requisitos.push(requisito); return nega ? aoNegar(nega) : corpo() },
   }
 }
 
@@ -37,7 +36,7 @@ test('dadosDaMoldura: usuario, menu, modulo ativo e flash do cabecalho interno',
   const d = await montar({}, { 'x-erp-flash': flash }).dadosDaMoldura()
   assert.deepEqual(d.usuario, { nome: 'Ana Operadora' })
   assert.equal(d.menu.length, 1)
-  assert.equal(d.ativo, 'zona1.painel')
+  assert.equal(d.ativo, 'zona1')
   assert.equal(d.indisponivel, false)
   assert.equal(d.flash?.texto, 'Feito')
 })
@@ -65,9 +64,11 @@ test('flash: cookie __Host- com Secure, Lax, caminho / e 60 s, que lerFlash le d
   assert.equal(lerFlash(c.valor)?.texto, 'Ok')
 })
 
+const PAINEL = { modulo: 'zona1', funcionalidade: 'painel.ver' }
+
 test('acaoProtegida: sucesso grava o toast e devolve o destino do corpo', async () => {
   const m = montar({})
-  const r = await m.acaoProtegida('zona1.painel', '/zona1', async () => ({ toast: { tipo: 'sucesso', texto: 'Tarefa concluída.' }, destino: '/zona1' }))
+  const r = await m.acaoProtegida(PAINEL, '/zona1', async () => ({ toast: { tipo: 'sucesso', texto: 'Tarefa concluída.' }, destino: '/zona1' }))
   assert.deepEqual(r, { destino: '/zona1' })
   assert.equal(lerFlash(m.cookies[0].valor)?.texto, 'Tarefa concluída.')
 })
@@ -75,20 +76,20 @@ test('acaoProtegida: sucesso grava o toast e devolve o destino do corpo', async 
 test('acaoProtegida: cada negacao do nucleo vira o destino certo, sem rodar o corpo', async () => {
   const corpo = async () => { throw new Error('o corpo nao podia rodar') }
   const origem = montar({ nega: 'origem' })
-  assert.deepEqual(await origem.acaoProtegida('m', '/zona2', corpo), { destino: '/' })
+  assert.deepEqual(await origem.acaoProtegida(PAINEL, '/zona2', corpo), { destino: '/' })
   assert.equal(origem.cookies.length, 0, 'origem recusada nao deve gravar nada')
-  assert.deepEqual(await montar({ nega: 'sessao' }).acaoProtegida('m', '/zona2', corpo), { destino: '/login?de=%2Fzona2' })
+  assert.deepEqual(await montar({ nega: 'sessao' }).acaoProtegida(PAINEL, '/zona2', corpo), { destino: '/login?de=%2Fzona2' })
   const modulo = montar({ nega: 'modulo' })
-  assert.deepEqual(await modulo.acaoProtegida('m', '/zona2', corpo), { destino: '/' })
+  assert.deepEqual(await modulo.acaoProtegida(PAINEL, '/zona2', corpo), { destino: '/' })
   assert.equal(lerFlash(modulo.cookies[0].valor)?.texto, MENSAGENS.OPERACAO_NAO_PERMITIDA)
 })
 
 test('acaoProtegida: erro do corpo vira toast com a mensagem publica do codigo e volta', async () => {
   const conhecido = montar({})
-  assert.deepEqual(await conhecido.acaoProtegida('m', '/zona2', async () => { throw new ErroDeApp('REGISTRO_DESATUALIZADO') }), { destino: '/zona2' })
+  assert.deepEqual(await conhecido.acaoProtegida(PAINEL, '/zona2', async () => { throw new ErroDeApp('REGISTRO_DESATUALIZADO') }), { destino: '/zona2' })
   assert.equal(lerFlash(conhecido.cookies[0].valor)?.texto, MENSAGENS.REGISTRO_DESATUALIZADO)
   const bug = montar({})
-  await bug.acaoProtegida('m', '/zona2', async () => { throw new TypeError('stacktrace secreto') })
+  await bug.acaoProtegida(PAINEL, '/zona2', async () => { throw new TypeError('stacktrace secreto') })
   assert.equal(lerFlash(bug.cookies[0].valor)?.texto, MENSAGENS.ERRO_INTERNO, 'erro interno vazou detalhe')
 })
 
@@ -103,4 +104,12 @@ test('ErroGlobal: documento proprio, mensagem publica e so o digest opaco', () =
   assert.match(html, /<html lang="pt-BR">/)
   assert.ok(html.includes('abc123'))
   assert.ok(!html.includes('ECONNREFUSED'), 'mensagem interna vazou')
+})
+
+test('acaoProtegida: o requisito chega inteiro ao nucleo (a funcionalidade nao se perde no caminho)', async () => {
+  const requisitos = []
+  const m = criarMolduraDoServidor({ paginas: paginas({ requisitos }), cabecalho: async () => null, gravarCookie: async () => {} })
+  await m.acaoProtegida({ modulo: 'zona2', funcionalidade: 'tarefas.concluir' }, '/zona2', async () => ({ toast: { tipo: 'sucesso', texto: 'ok' }, destino: '/zona2' }))
+  await m.acaoProtegida({ administra: true }, '/acesso', async () => ({ toast: { tipo: 'sucesso', texto: 'ok' }, destino: '/acesso' }))
+  assert.deepEqual(requisitos, [{ modulo: 'zona2', funcionalidade: 'tarefas.concluir' }, { administra: true }])
 })
