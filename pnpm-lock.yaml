@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@erp/contratos':
+        specifier: 0.2.1
+        version: 0.2.1
     devDependencies:
       '@types/react':
         specifier: ^19.0.0
@@ -22,6 +26,9 @@ importers:
         version: 5.9.3
 
 packages:
+
+  '@erp/contratos@0.2.1':
+    resolution: {integrity: sha512-ty100oy1VqTdLb3IZfXzTjDvgwxAOjGyImjvsnQTgof6sUShiB2KQPVvy9qh+mj204FMkZUsVwxStgBww7OA0g==, tarball: http://localhost:4873/@erp/contratos/-/contratos-0.2.1.tgz}
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
@@ -47,6 +54,8 @@ packages:
     hasBin: true
 
 snapshots:
+
+  '@erp/contratos@0.2.1': {}
 
   '@types/react@19.3.0':
     dependencies:

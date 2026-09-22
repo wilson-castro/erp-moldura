@@ -5,3 +5,5 @@ export {
   emitirToast, ouvirToasts, validarToast, serializarFlash, lerFlash,
   NOME_COOKIE_FLASH, TEXTO_MAXIMO, type Toast, type TipoDeToast, type Flash,
 } from './toast.js'
+export { ServicoIndisponivel } from './Indisponivel.js'
+export { ErroGlobal } from './ErroGlobal.js'
