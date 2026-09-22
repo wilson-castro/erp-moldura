@@ -28,7 +28,7 @@ importers:
 packages:
 
   '@erp/contratos@0.2.1':
-    resolution: {integrity: sha512-yPGMDgcsl9WYvtVSqB80kmOQOhhDx267DNmExY3d03mvZBml/hUSj9mWdyNhZhHpFyHewrwJrPKHSnKcYDUBjA==, tarball: http://localhost:4873/@erp/contratos/-/contratos-0.2.1.tgz}
+    resolution: {integrity: sha512-t4pjbg3NSd8MbhrKvmfM7dS98WmL30W55Ckz/9yF7eE5Ej2hXgoZSWyLCJM0Lz13MliHgwi1sAF06sRQt+ZDKg==, tarball: http://localhost:4873/@erp/contratos/-/contratos-0.2.1.tgz}
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
