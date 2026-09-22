@@ -2,6 +2,12 @@
 
 A **moldura** visual comum: topo, menu dos módulos permitidos e toast, igual em todas as apps.
 
+## Responsabilidades
+
+O que esta parte faz, o que nunca faz e o vocabulário usado aqui (BFF, zona, Server Action…), explicados
+do zero: [`docs/RESPONSABILIDADES.md`](https://github.com/ArtroxGabriel/nextjs-mfe/blob/bff-multizone/docs/RESPONSABILIDADES.md)
+no repositório principal, seção 7.
+
 ## O que tem
 
 - `Moldura`: topo, menu com `aria-current`, um `<h1>`, host de toast.
